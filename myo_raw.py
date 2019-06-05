@@ -288,7 +288,7 @@ class MyoRaw(object):
                 gyro = vals[7:10]
                 self.on_imu(quat, acc, gyro)
             elif attr == 0x23:
-                typ, val, xdir = unpack('3B', pay)
+                typ, val, xdir, _, _, _ = unpack('6B', pay)
 
                 if typ == 1: # on arm
                     self.on_arm(Arm(val), XDirection(xdir))
@@ -407,7 +407,7 @@ if __name__ == '__main__':
         HAVE_PYGAME = False
 
     if HAVE_PYGAME:
-        w, h = 1200, 400
+        w, h = 1200, 600
         scr = pygame.display.set_mode((w, h))
 
     last_vals = None
