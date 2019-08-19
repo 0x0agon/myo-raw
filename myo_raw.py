@@ -258,15 +258,15 @@ class MyoRaw(object):
             name = self.read_attr(0x03)
             print('device name: %s' % name.payload)
 
-            ## enable IMU data
+            # enable IMU data
             self.write_attr(0x1d, b'\x01\x00')
-            ## enable on/off arm notifications
+            # enable on/off arm notifications
             self.write_attr(0x24, b'\x02\x00')
 
             # self.write_attr(0x19, b'\x01\x03\x00\x01\x01')
             self.start_raw()
 
-        ## add data handlers
+        # add data handlers
         def handle_data(p):
             if (p.cls, p.cmd) != (4, 5): return
 
@@ -275,12 +275,24 @@ class MyoRaw(object):
 
             if attr == 0x27:
                 vals = unpack('8HB', pay)
-                ## not entirely sure what the last byte is, but it's a bitmask that
-                ## seems to indicate which sensors think they're being moved around or
-                ## something
+                # not entirely sure what the last byte is, but it's a bitmask that
+                # seems to indicate which sensors think they're being moved around or
+                # something
                 emg = vals[:8]
                 moving = vals[8]
                 self.on_emg(emg, moving)
+            # Read notification handles corresponding to the four EMG characteristics
+            elif attr == 0x2b or attr == 0x2e or attr == 0x31 or attr == 0x34:
+                ''' According to http://developerblog.myo.com/myocraft-emg-in-the-bluetooth-protocol/
+                each characteristic sends two sequential readings in each update,
+                so the received payload is split in two samples. According to the
+                Myo BLE specification, the data type of the EMG samples is int8_t.
+                '''
+                emg1 = struct.unpack('<8b', pay[:8])
+                emg2 = struct.unpack('<8b', pay[8:])
+                self.on_emg(emg1, 0)
+                self.on_emg(emg2, 0)
+            # Read IMU characteristic handle
             elif attr == 0x1c:
                 vals = unpack('10h', pay)
                 quat = vals[:4]
@@ -402,7 +414,8 @@ if __name__ == '__main__':
     try:
         import pygame
         from pygame.locals import *
-        HAVE_PYGAME = True
+        # HAVE_PYGAME = True
+        HAVE_PYGAME = False
     except ImportError:
         HAVE_PYGAME = False
 
